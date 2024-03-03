@@ -5,8 +5,8 @@ from bagpy import bagreader
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import postprocessing_suite as pps
-import postprocessing_suite.ahrs as ahrs
+import pednavtools as pnt
+import pednavtools.ahrs as ahrs
 
 # Gains & Thresholds
 dt = (1/50)
@@ -33,7 +33,7 @@ mag = np.array([mag_data['magnetic_field.x'], mag_data['magnetic_field.y'], mag_
 time_acc = imu_data['Time']
 time_mag = mag_data['Time']
 # Setup Sensor
-imu = pps.IMU(acc, gyr, mag, 0)
+imu = pnt.IMU(acc, gyr, mag, 0)
 imu.mag_cal()
 imu.body_to_nav(range(331))
 

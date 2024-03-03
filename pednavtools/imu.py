@@ -1,5 +1,4 @@
 import numpy as np
-import scipy as sp
 
 class IMU:
     def __init__(self, acc, gyr, mag, fs):
