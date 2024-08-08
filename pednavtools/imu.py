@@ -1,6 +1,7 @@
 import numpy as np
+from conversions import *
 
-def magCal(mag):
+def magCal(mag:np.array) -> np.array:
     # Offset Correction
     off_x = (max(mag[0,:]) + min(mag[0,:])) / 2
     off_y = (max(mag[1,:]) + min(mag[1,:])) / 2
@@ -25,14 +26,11 @@ def body2nav(acc:np.array, mag:np.array, range = 0, th=0.01) -> np.array:
     mag_n = mag
     # Initial Euler Angle Estimates
     rpy = np.array([np.pi/2, np.py/2, 0])
-    pitch = np.pi / 2
-    roll = np.pi / 2
-    yaw = 0
     # Iterative Calculation of Euler Angles to Drive Roll
     # and Pitch to near 0
     ret = np.eye(3)
-    while pitch > th and roll > th:
-        acc_ = np.mean(acc[...,range],axis=1)
+    while rpy[0] > th and rpy[1] > th:
+        acc_ = np.mean(acc_n[...,range],axis=1)
         rpy[0] = np.arctan2(acc_[1], acc_[2]).item()
         rpy[1] = np.arctan(acc_[0]/np.sqrt(acc_[1]**2 + acc_[2]**2)).item()
 
@@ -42,21 +40,8 @@ def body2nav(acc:np.array, mag:np.array, range = 0, th=0.01) -> np.array:
         rpy[2] = np.arctan2(mag_[1], mag_[0]).item()
 
         C = eul2rot(rpy)
-        ret = C*ret
+        acc_n = C@acc_n
+        mag_n = C@acc_n
+        ret = C@ret
     
     return ret
-
-def eul2rot(angles:np.array) -> np.array:
-    ct = np.cos(angles)
-    st = np.sin(angles)
-
-    cz = ct[0]   
-    cx = ct[2]
-    cy = ct[1]
-    sx = st[2]
-    sy = st[1]
-    sz = st[0]
-
-    return np.array([[cy*cz, sy*sx*cz - sz*cx, sy*cx*cz + sz*sx],
-                        [cy*sz, sy*sx*sz + cz*cx, sy*cx*sz - cz*sx],
-                        [  -sy,            cy*sx,            cy*cx]])
