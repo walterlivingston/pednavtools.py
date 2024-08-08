@@ -14,8 +14,8 @@ def filter(acc, gyr, dt, mag=None, beta=0.1, zeta=0):
     Jg = np.zeros([3,4])
     grad = np.quaternion(1,0,0,0)
 
-    Fg[0] = 2*(q_est.x*q_est.z - q_est.w*q_est.y) - q_a.x
-    Fg[1] = 2*(q_est.w*q_est.x + q_est.y*q_est.z) - q_a.y
+    Fg[0] = 2*(q_est.x*q_est.z - q_est.w*q_est.y - q_a.x)
+    Fg[1] = 2*(q_est.w*q_est.x + q_est.y*q_est.z - q_a.y)
     Fg[2] = 2*(0.5 - q_est.x**2 - q_est.y**2) - q_a.z
 
     Jg[0,0] = -2*q_est.y
@@ -35,7 +35,7 @@ def filter(acc, gyr, dt, mag=None, beta=0.1, zeta=0):
 
     if mag is not None:
         q_m = np.quaternion(0, mag[0], mag[1], mag[2])
-        q_m = q_m.normalized()
+        # q_m = q_m.norxmalized()
         Fb = np.zeros([3,1])
         Jb = np.zeros([3,4])
 

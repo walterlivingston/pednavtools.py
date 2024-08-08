@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class IMU:
     def __init__(self, acc, gyr, mag, fs):
         # Raw Measurements
@@ -41,7 +42,7 @@ class IMU:
         self.mag_cf[2,:] = (self.raw_mag[2,:] - off_z) * scale_z
         print("Mag Cal")
 
-    def body_to_nav(self, range = 0, th=0.01):
+    def body_to_nav(self, range = 0, th=np.deg2rad(1)):
         # Initialize the Navigation Frame Measurements
         self.acc_n = self.acc_cf
         self.gyr_n = self.gyr_cf
