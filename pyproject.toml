@@ -1,14 +1,19 @@
 [tool.poetry]
-name = "pednav-tools"
+name = "pednavtools-py"
 version = "0.1.0"
-description = "A Python package for post processing IMU and Magnetometer data for pedestrian navigation."
+description = "A python package for post-processing imu and magnetometer data for pedestrian navigation."
 authors = ["Walter Livingston <wblivingston18@gmail.com>"]
 license = "MIT"
 readme = "README.md"
+packages = [{include = "pednavtools"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
+numpy = "^2.0.1"
 
+[tool.poetry.group.dev.dependencies]
+bagpy = "^0.5"
+pandas = "^2.2.2"
 
 [build-system]
 requires = ["poetry-core"]
