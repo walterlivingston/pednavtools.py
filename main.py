@@ -1,8 +1,9 @@
-import bagpy
 from bagpy import bagreader
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import pednavtools as pnt
+from pednavtools import ahrs
 
 b = bagreader('data/11-28-23_nav_normal.bag')
 
@@ -16,14 +17,18 @@ gps_data = pd.read_csv(ublox_GPS)
 enu_vel = np.array([gps_data['enuVelocity.eastVelocity'], gps_data['enuVelocity.northVelocity'], gps_data['enuVelocity.upVelocity']])
 course = np.arctan2(enu_vel[0,:], enu_vel[1,:])
 
+time = imu_data['header.stamp.secs']
 acc = np.array([imu_data['linear_acceleration.x'], imu_data['linear_acceleration.y'], imu_data['linear_acceleration.z']])
 gyr = np.array([imu_data['angular_velocity.x'], imu_data['angular_velocity.y'], imu_data['angular_velocity.z']])
 mag = np.array([mag_data['magnetic_field.x'], mag_data['magnetic_field.y'], mag_data['magnetic_field.z']])
 
-raw_imu = pnt.IMU(acc,gyr,mag)
+raw_imu = pnt.IMU(acc,gyr,mag,time)
 cal_imu = pnt.calibrate_mag(raw_imu)
 cal_range = pnt.detect_still(cal_imu)
 imu_n = pnt.body2nav(cal_imu, cal_range)
 noise = pnt.find_characteristics(imu_n, cal_range)
 
-print(noise)
+att = ahrs.madgwick(imu_n)
+
+plt.plot(time, np.transpose(att))
+plt.show()
