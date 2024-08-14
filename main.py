@@ -28,7 +28,7 @@ cal_range = pnt.detect_still(cal_imu)
 imu_n = pnt.body2nav(cal_imu, cal_range)
 noise = pnt.find_characteristics(imu_n, cal_range)
 
-att = ahrs.madgwick(imu_n)
+att = ahrs.madgwick(raw_imu)
 
 plt.plot(time, np.transpose(att))
 plt.show()
