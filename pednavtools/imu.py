@@ -9,14 +9,19 @@ class IMU:
     gyr: np.array
     mag: np.array
     time: np.array
+    mag_time: np.array
     fs: float
 
-    def __init__(self, acc: np.array = [], gyr: np.array = [], mag: np.array = [], time: np.array = [], fs: float = -1):
+    def __init__(self, acc: np.array = [], gyr: np.array = [], mag: np.array = [], time: np.array = [], fs: float = -1, mag_time: np.array = []):
         self.acc = acc
         self.gyr = gyr
         self.mag = mag
         self.time = time
         self.fs = fs
+        if mag_time is None:
+            self.mag_time = self.time
+        else:
+            self.mag_time = mag_time
 
 @dataclass
 class Noise:
@@ -54,7 +59,7 @@ def calibrate_mag(imu:IMU) -> IMU:
         scale_x = scale_y = scale_z = 1
 
     mag_c = np.vstack([(mag[0,:] - off_x) * scale_x, (mag[1,:] - off_y) * scale_y, (mag[2,:] - off_z) * scale_z])
-    return IMU(imu.acc, imu.gyr, mag_c, imu.time, imu.fs)
+    return IMU(imu.acc, imu.gyr, mag_c, imu.time, imu.fs, imu.mag_time)
 
 def body2nav(imu:IMU, rng: range = range(1), th=0.01) -> IMU:
     # Initialize the Navigation Frame Measurements
@@ -81,7 +86,7 @@ def body2nav(imu:IMU, rng: range = range(1), th=0.01) -> IMU:
         gyr_n = C@gyr_n
         mag_n = C@mag_n
 
-    ret = IMU(acc_n, gyr_n, mag_n, imu.time, imu.fs)
+    ret = IMU(acc_n, gyr_n, mag_n, imu.time, imu.fs, imu.mag_time)
    
     return ret
 

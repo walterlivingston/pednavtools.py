@@ -17,18 +17,21 @@ gps_data = pd.read_csv(ublox_GPS)
 enu_vel = np.array([gps_data['enuVelocity.eastVelocity'], gps_data['enuVelocity.northVelocity'], gps_data['enuVelocity.upVelocity']])
 course = np.arctan2(enu_vel[0,:], enu_vel[1,:])
 
-time = imu_data['header.stamp.secs']
+imu_time = imu_data['Time']
 acc = np.array([imu_data['linear_acceleration.x'], imu_data['linear_acceleration.y'], imu_data['linear_acceleration.z']])
 gyr = np.array([imu_data['angular_velocity.x'], imu_data['angular_velocity.y'], imu_data['angular_velocity.z']])
 mag = np.array([mag_data['magnetic_field.x'], mag_data['magnetic_field.y'], mag_data['magnetic_field.z']])
+mag_time = mag_data['Time']
 
-raw_imu = pnt.IMU(acc,gyr,mag,time)
+time, meas = pnt.time_sync(imu_time, mag_time)
+
+raw_imu = pnt.IMU(acc,gyr,mag,imu_time,0,mag_time)
 cal_imu = pnt.calibrate_mag(raw_imu)
 cal_range = pnt.detect_still(cal_imu)
 imu_n = pnt.body2nav(cal_imu, cal_range)
 noise = pnt.find_characteristics(imu_n, cal_range)
 
-att = ahrs.madgwick(raw_imu)
+att = ahrs.smekf(imu_n, noise)
 
-plt.plot(time, np.transpose(att))
+plt.plot(time, (att))
 plt.show()
