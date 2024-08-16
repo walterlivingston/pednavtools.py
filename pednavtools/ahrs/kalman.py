@@ -15,7 +15,6 @@ def eskf(imu:IMU, noise:Noise):
 def mekf(imu:IMU, noise:Noise):
     pass
 
-# (TODO) Implement Sequential Multiplicative Extended Kalman Filter
 def smekf(imu:IMU, noise:Noise):
     time, meas = time_sync(imu.time, imu.mag_time)
     N = time.size
@@ -24,15 +23,14 @@ def smekf(imu:IMU, noise:Noise):
     O = np.zeros((3,3))
     g = np.transpose(np.array([0, 0, 9.81]))
 
-    Rprime = np.diag(np.hstack((noise.sigma_a, noise.sigma_m)))
-    temp = np.hstack((noise.sigma_g, noise.sigma_g))
-    Qc = np.diag(np.hstack((noise.sigma_g, noise.sigma_g)))
+    Rprime = np.diag(np.hstack((noise.sigma_a**2, noise.sigma_m**2)))
+    Qc = np.diag(np.hstack((noise.sigma_g**2, noise.sigma_g**2)))
     P = Qc
 
     attBwrtRinQ = np.hstack((np.ones([N,1]), np.zeros([N,3])))
-    attBwrtRin321_0 = initialPose(imu)
-    attBwrtRinQ[0,...] = q.eul2q(attBwrtRin321_0)
-    x = np.zeros((6,N))
+    # attBwrtRin321_0 = initialPose(imu)
+    # attBwrtRinQ[0,...] = q.eul2q(attBwrtRin321_0)
+    x = np.zeros((6))
     sigmas = np.ones((6,N))
 
     for i in range(1,N-1):
@@ -47,23 +45,21 @@ def smekf(imu:IMU, noise:Noise):
                 a = imu.acc[...,idx]
 
                 # a priori orientation update
-                q_w = np.array([0, w[0], w[1], w[2]])
-                attBwrtRinQ[i,...] = attBwrtRinQ[i-1,...] + 0.5*q.qMult(attBwrtRinQ[i,...], q_w)
+                attBwrtRinQ[i,...] = qKinematics(attBwrtRinQ[i-1,...], w, dt)
                 toBfromR = q.q2DCM(attBwrtRinQ[i,...])
 
                 # time update
-                F = np.bmat([[skew(w), -I],
-                              [      O,  I]])
+                F = np.bmat([[-skew(w), -I],
+                             [       O,  I]])
                 Phi = np.eye(6) + F*dt
                 Bw = np.bmat([[-I, O],
-                               [ O, I]])
-                P = Phi@P@Phi.T + Bw@Qc@Bw*dt
+                              [ O, I]])
+                P = Phi@P@Phi.T + Bw@Qc@Bw.T*dt
 
                 # measurement update setup
                 H = np.bmat([[skew(toBfromR@g), O]])
                 R = Rprime[0:3,0:3]
                 z_ = toBfromR@g - a
-                pass
             # Process Magnetometer Measurement
             else:
                 idx = meas[0:i].sum()
@@ -79,16 +75,21 @@ def smekf(imu:IMU, noise:Noise):
                 H = np.bmat([[skew(toBfromR@b), O]])
                 R = Rprime[3:6,3:6]
                 z_ = toBfromR@b - m
-                pass
 
             # Measurement Update
             L = P@H.T@inv(H@P@H.T + R)
-            x[...,i] = L@z_
+            x = np.squeeze(L@z_)
             P = (np.eye(6) - L@H)@P
 
-            q_a = np.array([0,x[0,i],x[1,i],x[2,i]]) / 2
-            attBwrtRinQ[i,...] = q.qMult(q_a, attBwrtRinQ[i,...])
+            q_a = np.array([1,x[0,0],x[0,1],x[0,2]]) / 2
+            attBwrtRinQ[i,...] = q.qMult(attBwrtRinQ[i,...], q_a)
+            attBwrtRinQ[i,...] = q.qNormalize(attBwrtRinQ[i,...])
+
+            x = np.zeros((6))
 
     return np.squeeze(q.q2eul(attBwrtRinQ))
 
-    pass
+def qKinematics(qI:np.array, w:np.array, dt:float) -> np.array:
+    q_w = np.array([0, w[0], w[1], w[2]])
+    q0 = qI + 0.5*q.qMult(qI, q_w)*dt
+    return q.qNormalize(q0)
