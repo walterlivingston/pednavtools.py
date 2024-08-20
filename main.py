@@ -26,8 +26,9 @@ mag_time = mag_data['Time']
 
 time, meas = pnt.time_sync(imu_time, mag_time)
 course = np.interp(time, gps_time, course)
+course = -course
 course[course < 0] = course[course < 0] + 2*np.pi
-course = np.unwrap(course)
+# course = np.unwrap(course)
 course = np.rad2deg(course)
 
 raw_imu = pnt.IMU(acc,gyr,mag,imu_time,50,mag_time)
@@ -41,10 +42,9 @@ noise.sigma_g = 0.1*noise.sigma_g
 noise.sigma_m = 0.5*noise.sigma_m
 
 att = ahrs.smekf(imu_n, noise)
-# att[...,2] = -att[...,2] + np.pi/2
+att[...,2] = -att[...,2] + np.pi/2
 att[..., att < 0] = att[..., att < 0] + 2*np.pi
-att = -att + np.pi/2
-att = np.unwrap(att)
+# att = np.unwrap(att)
 att = np.rad2deg(att)
 
 plt.plot(att[...,2], color='b', label='AHRS')

@@ -39,14 +39,18 @@ def smekf(imu:IMU, noise:Noise):
             # Process IMU Measurement
             if not meas[i-1]:
                 idx = i - meas[0:i].sum()
-                dt = time[idx] - time[idx-1]
+                if idx == 0:
+                    dt = imu.time[idx]
+                else:
+                    dt = imu.time[idx] - imu.time[idx-1]
+                # dt = time[idx] - time[idx-1]
 
                 w = imu.gyr[...,idx]
                 a = imu.acc[...,idx]
 
                 # a priori orientation update
                 attBwrtRinQ[i,...] = qKinematics(attBwrtRinQ[i-1,...], w, dt)
-                toBfromR = q.q2DCM(attBwrtRinQ[i,...])
+                toBfromR = np.transpose(q.q2DCM(attBwrtRinQ[i,...]))
 
                 # time update
                 F = np.bmat([[-skew(w), -I],
@@ -54,7 +58,7 @@ def smekf(imu:IMU, noise:Noise):
                 Phi = np.eye(6) + F*dt
                 Bw = np.bmat([[-I, O],
                               [ O, I]])
-                P = Phi@P@Phi.T + Bw@Qc@Bw.T*dt
+                P = Phi@P@Phi.T + Phi@Bw@Qc@Bw.T@Phi.T*dt
 
                 # measurement update setup
                 H = np.bmat([[skew(toBfromR@g), O]])
@@ -91,5 +95,5 @@ def smekf(imu:IMU, noise:Noise):
 
 def qKinematics(qI:np.array, w:np.array, dt:float) -> np.array:
     q_w = np.array([0, w[0], w[1], w[2]])
-    q0 = qI + 0.5*q.qMult(qI, q_w)*dt
+    q0 = qI + 0.5*q.qMult(q_w, qI)*dt
     return q.qNormalize(q0)
