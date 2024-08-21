@@ -28,8 +28,8 @@ def smekf(imu:IMU, noise:Noise):
     P = Qc
 
     attBwrtRinQ = np.hstack((np.ones([N,1]), np.zeros([N,3])))
-    # attBwrtRin321_0 = initialPose(imu)
-    # attBwrtRinQ[0,...] = q.eul2q(attBwrtRin321_0)
+    attBwrtRin321_0 = initialPose(imu)
+    attBwrtRinQ[0,...] = q.eul2q(attBwrtRin321_0)
     x = np.zeros((6))
     sigmas = np.ones((6,N))
 
@@ -43,7 +43,6 @@ def smekf(imu:IMU, noise:Noise):
                     dt = imu.time[idx]
                 else:
                     dt = imu.time[idx] - imu.time[idx-1]
-                # dt = time[idx] - time[idx-1]
 
                 w = imu.gyr[...,idx]
                 a = imu.acc[...,idx]
@@ -61,24 +60,20 @@ def smekf(imu:IMU, noise:Noise):
                 P = Phi@P@Phi.T + Phi@Bw@Qc@Bw.T@Phi.T*dt
 
                 # measurement update setup
-                H = np.bmat([[skew(toBfromR@g), O]])
                 R = Rprime[0:3,0:3]
-                z_ = toBfromR@g - a
+                z_, H, S, y_, s_ = accUpdate(a, toBfromR, P, R)
             # Process Magnetometer Measurement
             else:
                 idx = meas[0:i].sum()
                 dt = time[idx] - time[idx-1]
                 attBwrtRinQ[i,...] = attBwrtRinQ[i-1,...]
-                toBfromR = q.q2DCM(attBwrtRinQ[i,...])
+                toBfromR = np.transpose(q.q2DCM(attBwrtRinQ[i,...]))
 
                 m = imu.mag[...,idx]
-                q_b = mag_madgwick(attBwrtRinQ[i, ...], m)
-                b = q_b[1:4]
+                R = Rprime[3:6,3:6]
 
                 # measurement update setup
-                H = np.bmat([[skew(toBfromR@b), O]])
-                R = Rprime[3:6,3:6]
-                z_ = toBfromR@b - m
+                z_, H, S, y_, s_ = magUpdate(m, toBfromR, P, R)
 
             # Measurement Update
             L = P@H.T@inv(H@P@H.T + R)
@@ -97,3 +92,24 @@ def qKinematics(qI:np.array, w:np.array, dt:float) -> np.array:
     q_w = np.array([0, w[0], w[1], w[2]])
     q0 = qI + 0.5*q.qMult(q_w, qI)*dt
     return q.qNormalize(q0)
+
+def accUpdate(a, toBfromR, P, R):
+    g = np.array([0, 0, 9.81])
+    return refVecUpdate(a, g, toBfromR, P, R)
+
+def magUpdate(m, toBfromR, P, R):
+    q_est = np.squeeze(q.DCM2q(toBfromR.T))
+
+    q_b = mag_madgwick(q_est, m)
+    b = q_b[1:4]
+    return refVecUpdate(m, b, toBfromR, P, R)
+
+def refVecUpdate(v, vRef, rotMat, P, R):
+    H = np.bmat([[skew(rotMat@vRef), np.zeros((3,3))]])
+    z_ = rotMat@vRef - v
+
+    S = H@P@H.T + R
+    y_ = z_/np.sqrt(np.diag(S))
+    s_ = (np.transpose(z_)@inv(S)@z_)
+
+    return z_, H, S, y_, s_
