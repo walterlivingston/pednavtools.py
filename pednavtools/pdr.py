@@ -25,12 +25,12 @@ def detect_still(imu: IMU, M:int = 11, th:float = 0.01) -> range:
     buf = acc[...,0]
     N = acc.size
     start, stop = N, N
-    for i in range(M+1, N-1):
+    for i in range(M, N-1):
         win = acc[:, (i-M):(i-1)]
         standing, buf = variance_detector(win, M, th, buf)
         if(standing and start == N):
             start = i
-        elif(not standing and start != N):
+        elif((not standing and start != N) or i > N*0.1):
             stop = i
             break
 

@@ -61,7 +61,7 @@ def calibrate_mag(imu:IMU) -> IMU:
     mag_c = np.vstack([(mag[0,:] - off_x) * scale_x, (mag[1,:] - off_y) * scale_y, (mag[2,:] - off_z) * scale_z])
     return IMU(imu.acc, imu.gyr, mag_c, imu.time, imu.fs, imu.mag_time)
 
-def body2nav(imu:IMU, rng: range = range(1), th=0.01) -> IMU:
+def body2nav(imu:IMU, rng: range = range(1), th=np.deg2rad(1)) -> IMU:
     # Initialize the Navigation Frame Measurements
     acc_n = imu.acc
     gyr_n = imu.gyr
@@ -71,13 +71,13 @@ def body2nav(imu:IMU, rng: range = range(1), th=0.01) -> IMU:
     # Iterative Calculation of Euler Angles to Drive Roll
     # and Pitch to near 0
     ret = np.eye(3)
-    while rpy[0] > th and rpy[1] > th:
+    while abs(rpy[0]) > th and abs(rpy[1]) > th:
         acc_ = np.mean(acc_n[...,rng],axis=1)
         rpy[0] = np.arctan2(acc_[1], acc_[2]).item()
         rpy[1] = np.arctan(acc_[0]/np.sqrt(acc_[1]**2 + acc_[2]**2)).item()
 
         C = eul2rot(rpy)
-        mag_t = C@mag_n
+        mag_t = C@imu.mag
         mag_ = np.mean(mag_t[..., rng],axis=1)
         rpy[2] = np.arctan2(mag_[1], mag_[0]).item()
 
