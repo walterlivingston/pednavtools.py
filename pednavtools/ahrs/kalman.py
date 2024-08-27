@@ -45,14 +45,16 @@ def smekf(imu:IMU, noise:Noise):
                     dt = imu.time[idx] - imu.time[idx-1]
 
                 w = imu.gyr[...,idx]
+                w_ = imu.gyr[...,idx-1]
+                W = (w + w_)*0.5
                 a = imu.acc[...,idx]
 
                 # a priori orientation update
-                attBwrtRinQ[i,...] = qKinematics(attBwrtRinQ[i-1,...], w, dt)
+                attBwrtRinQ[i,...] = qKinematics(attBwrtRinQ[i-1,...], W, dt)
                 toBfromR = np.transpose(q.q2DCM(attBwrtRinQ[i,...]))
 
                 # time update
-                F = np.bmat([[-skew(w), -I],
+                F = np.bmat([[-skew(W), -I],
                              [       O,  I]])
                 Phi = np.eye(6) + F*dt
                 Bw = np.bmat([[-I, O],
