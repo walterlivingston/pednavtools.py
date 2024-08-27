@@ -28,8 +28,8 @@ def smekf(imu:IMU, noise:Noise):
     P = Qc
 
     attBwrtRinQ = np.hstack((np.ones([N,1]), np.zeros([N,3])))
-    attBwrtRin321_0 = initialPose(imu)
-    attBwrtRinQ[0,...] = q.eul2q(attBwrtRin321_0)
+    # attBwrtRin321_0 = initialPose(imu)
+    # attBwrtRinQ[0,...] = q.eul2q(attBwrtRin321_0)
     x = np.zeros((6))
     sigmas = np.ones((6,N))
 
