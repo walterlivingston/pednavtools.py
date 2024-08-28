@@ -10,7 +10,7 @@ def time_sync(time1, time2):
     L = time1.size
     I = np.argsort(time)
     time = np.sort(time)
-    meas = I > L-1
+    meas = I > L
 
     return time - time[0], meas
 

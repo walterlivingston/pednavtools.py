@@ -33,7 +33,7 @@ def smekf(imu:IMU, noise:Noise):
     x = np.zeros((6))
     sigmas = np.ones((6,N))
 
-    for i in range(1,N-1):
+    for i in range(1,N-2):
         # Process first IMU measurement before Magnetometer
         if not meas[0:i].all():
             # Process IMU Measurement
@@ -44,10 +44,10 @@ def smekf(imu:IMU, noise:Noise):
                 else:
                     dt = imu.time[idx] - imu.time[idx-1]
 
-                w = imu.gyr[...,idx]
-                w_ = imu.gyr[...,idx-1]
+                w = imu.gyr[...,idx-1]
+                w_ = imu.gyr[...,idx]
                 W = (w + w_)*0.5
-                a = imu.acc[...,idx]
+                a = imu.acc[...,idx-1]
 
                 # a priori orientation update
                 attBwrtRinQ[i,...] = qKinematics(attBwrtRinQ[i-1,...], W, dt)
@@ -63,10 +63,10 @@ def smekf(imu:IMU, noise:Noise):
 
                 # measurement update setup
                 R = Rprime[0:3,0:3]
-                z_, H, S, y_, s_ = accUpdate(a, toBfromR, P, R)
+                z_, H = accUpdate(a, toBfromR, P, R)
             # Process Magnetometer Measurement
             else:
-                idx = meas[0:i].sum()
+                idx = meas[0:i].sum()-1
                 dt = time[idx] - time[idx-1]
                 attBwrtRinQ[i,...] = attBwrtRinQ[i-1,...]
                 toBfromR = np.transpose(q.q2DCM(attBwrtRinQ[i,...]))
@@ -75,14 +75,14 @@ def smekf(imu:IMU, noise:Noise):
                 R = Rprime[3:6,3:6]
 
                 # measurement update setup
-                z_, H, S, y_, s_ = magUpdate(m, toBfromR, P, R)
+                z_, H = magUpdate(m, toBfromR, P, R)
 
             # Measurement Update
             L = P@H.T@inv(H@P@H.T + R)
             x = np.squeeze(L@z_)
             P = (np.eye(6) - L@H)@P
 
-            q_a = np.array([1,x[0,0],x[0,1],x[0,2]]) / 2
+            q_a = np.array([2,x[0,0],x[0,1],x[0,2]]) / 2
             attBwrtRinQ[i,...] = q.qMult(attBwrtRinQ[i,...], q_a)
             attBwrtRinQ[i,...] = q.qNormalize(attBwrtRinQ[i,...])
 
@@ -107,11 +107,11 @@ def magUpdate(m, toBfromR, P, R):
     return refVecUpdate(m, b, toBfromR, P, R)
 
 def refVecUpdate(v, vRef, rotMat, P, R):
-    H = np.bmat([[skew(rotMat@vRef), np.zeros((3,3))]])
+    H = np.bmat([skew(rotMat@vRef), np.zeros((3,3))])
     z_ = rotMat@vRef - v
 
-    S = H@P@H.T + R
-    y_ = z_/np.sqrt(np.diag(S))
-    s_ = (np.transpose(z_)@inv(S)@z_)
+    # S = H@P@H.T + R
+    # y_ = z_/np.sqrt(np.diag(S))
+    # s_ = (np.transpose(z_)@inv(S)@z_)
 
-    return z_, H, S, y_, s_
+    return z_, H;#, S, y_, s_
