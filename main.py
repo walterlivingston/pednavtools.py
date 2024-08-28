@@ -5,14 +5,18 @@ import matplotlib.pyplot as plt
 import pednavtools as pnt
 from pednavtools import ahrs
 
-b = bagreader('data/11-28-23_nav_normal.bag')
+# b = bagreader('data/11-28-23_nav_normal.bag')
 
-vecnav_IMU = b.message_by_topic('/vectornav/IMU')
-vecnav_Mag = b.message_by_topic('/vectornav/Mag')
-ublox_GPS = b.message_by_topic('/ublox/enuVelocityTagged')
-imu_data = pd.read_csv(vecnav_IMU)
-mag_data = pd.read_csv(vecnav_Mag)
-gps_data = pd.read_csv(ublox_GPS)
+# vecnav_IMU = b.message_by_topic('/vectornav/IMU')
+# vecnav_Mag = b.message_by_topic('/vectornav/Mag')
+# ublox_GPS = b.message_by_topic('/ublox/enuVelocityTagged')
+# imu_data = pd.read_csv(vecnav_IMU)
+# mag_data = pd.read_csv(vecnav_Mag)
+# gps_data = pd.read_csv(ublox_GPS)
+
+imu_data = pd.read_csv('data/11-28-23_nav_normal/vectornav-IMU.csv')
+mag_data = pd.read_csv('data/11-28-23_nav_normal/vectornav-Mag.csv')
+gps_data = pd.read_csv('data/11-28-23_nav_normal/ublox-enuVelocityTagged.csv')
 
 gps_time = gps_data['Time']
 enu_vel = np.array([gps_data['enuVelocity.eastVelocity'], gps_data['enuVelocity.northVelocity'], gps_data['enuVelocity.upVelocity']])
@@ -38,7 +42,7 @@ imu_n = pnt.body2nav(cal_imu, cal_range)
 noise = pnt.find_characteristics(imu_n, cal_range)
 
 noise.sigma_a = 0.7*noise.sigma_a
-noise.sigma_g = 0.1*noise.sigma_g
+noise.sigma_g = 0.01*noise.sigma_g
 noise.sigma_m = 0.5*noise.sigma_m
 
 att = ahrs.smekf(imu_n, noise)
