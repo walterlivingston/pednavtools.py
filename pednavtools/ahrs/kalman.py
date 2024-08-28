@@ -66,12 +66,12 @@ def smekf(imu:IMU, noise:Noise):
                 z_, H = accUpdate(a, toBfromR, P, R)
             # Process Magnetometer Measurement
             else:
-                idx = meas[0:i].sum()-1
+                idx = meas[0:i].sum()
                 dt = time[idx] - time[idx-1]
                 attBwrtRinQ[i,...] = attBwrtRinQ[i-1,...]
                 toBfromR = np.transpose(q.q2DCM(attBwrtRinQ[i,...]))
 
-                m = imu.mag[...,idx]
+                m = imu.mag[...,idx-1]
                 R = Rprime[3:6,3:6]
 
                 # measurement update setup

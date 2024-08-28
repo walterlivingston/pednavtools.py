@@ -48,7 +48,7 @@ att[..., att < 0] = att[..., att < 0] + 2*np.pi
 att = np.rad2deg(att)
 
 plt.plot(att[...,2], color='b', label='AHRS')
-plt.plot(course, color='r', label='Course')
+# plt.plot(course, color='r', label='Course')
 plt.show()
 
 print('')
